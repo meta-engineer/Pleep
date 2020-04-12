@@ -1,4 +1,5 @@
-# PLEEP flask bankend
+﻿# Pleep
+Pleep on Flask (api backend and desktop frontend)
 
 ## Setup
  *While it is possible to set ENV and DEBUG in your config or code, 
