@@ -1,0 +1,100 @@
+{% extends 'public_layout.html' %}
+
+{% block body %}
+    <h5>CREATE THREAD</h5>
+    <form action="" onsubmit="post_create_thread()">
+        <div class="form-group">
+            <label>Title</label>
+            <input type="text" id="title" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label>Text Content</label>
+            <textarea rows="4" id="text_content" class="form-control" ></textarea>
+        </div>
+        <div class="form-group">
+            <label>File</label>
+            <input type="file" name="file" id='file' class="form-control" />
+        </div>
+        <button type="button" onclick="post_create_pleep()" class="btn btn-primary">Create</button>
+    </form>
+    <div id='resp' class="alert ml-0"></div>
+    <script>
+        // public create thread also creates init post
+        // parse init post for #'s and regex for '#[*] ' to build thread categories?
+
+        // Upload file first, on succ creat thread, on succ make post
+        function post_create_pleep() {
+            var td = {};
+            var pd = {};
+            try {
+                var fn = preemptive_upload();
+                // if file selected upload and attach returned filename
+                if (fn != '') {
+                    pd['data_filename'] = fn;
+                }
+            }  catch(err) {
+                document.getElementById('resp').innerHTML = str(err)
+                return
+            }
+
+            td['title'] = document.getElementById('title').value;
+
+            var xh = new XMLHttpRequest();
+            xh.open('POST', '/api/thread/create', false);
+            xh.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xh.send(JSON.stringify(td));
+            if (xh.status=200) {
+                var res = JSON.parse(xh.response);
+                if (res.status == 200) {
+                    console.log(res);
+                    pd['thread_id'] = res.data.id;
+                    //document.getElementById('resp').innerHTML = JSON.stringify(res);
+                } else {
+                    document.getElementById('resp').innerHTML = res.error;
+                    // deal with unattached upload?
+                    return
+                }
+            }
+
+            pd['text_content'] = document.getElementById('text_content').value;
+            //pd['thread_id'] = ...;
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/post/create', false);
+            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xhr.send(JSON.stringify(pd));
+            if (xhr.status=200) {
+                console.log(res);
+                var res = JSON.parse(xhr.response);
+                if (res.status == 200) {
+                    document.getElementById('resp').innerHTML = "Thread created!<br>";
+                    document.getElementById('resp').innerHTML+= "<a href='/thread/" + pd['thread_id'] + "'><button type='button' class='btn btn-primary'>Go To Thread &raquo;</button></a>";
+                } else {
+                    document.getElementById('resp').innerHTML = res.error;
+                    // deal with unattached upload?
+                    return
+                }
+            }
+        }
+        function preemptive_upload() {
+            var fi = document.getElementById('file');
+            if (fi.files.length == 0) {
+                return '';
+            }
+            var f = fi.files[0];
+            var fd = new FormData();
+            fd.append(f.name, f);
+            var xh = new XMLHttpRequest();
+            xh.open('POST', '/api/upload/' + f.name, false); // false=synchronous
+            xh.send(fd);
+            if (xh.status=200) {
+                var res = JSON.parse(xh.response);
+                if (res.status == 201) {
+                    return res.data;
+                } else {
+                    throw res.error
+                }
+            }
+        }
+    </script>
+{% endblock %}

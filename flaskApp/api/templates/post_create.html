@@ -1,0 +1,73 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+    <h5>CREATE POST</h5>
+    <form action="" method="">
+        <button type="submit" disabled class="d-none" aria-hidden="true">shh</button>
+        <div class="form-group">
+            <label>Thread ID</label>
+            <input type="number" name="thread_id" class="form-control" />
+        </div>
+        <!-- respondee post id ? -->
+        <div class="form-group">
+            <label>Text Content</label>
+            <input type="textarea" name="text_content" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label>File</label>
+            <input type="file" name="file" id='file' class="form-control" />
+        </div>
+        <button type="button" onclick="post_create_post()" class="btn btn-primary">Create</button>
+    </form>
+    <div id='resp' class="alert"></div>
+    <script>
+        function post_create_post() {
+            var data = {};
+            data['thread_id'] = document.getElementsByName('thread_id')[0].value;
+            data['text_content'] = document.getElementsByName('text_content')[0].value;
+            // if file selected upload and attach returned filename
+            var fn = preemptive_upload();
+            if (fn != '') {
+                data['data_filename'] = fn;
+                data['data_type'] = fn.split('.')[1].toLowerCase();
+            }
+            // pre sending validate
+            //address format, password match
+
+            var xh = new XMLHttpRequest();
+            xh.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    var res = JSON.parse(this.response);
+                    if (res.status == 200) {
+                        document.getElementById('resp').innerHTML = JSON.stringify(res);
+                    } else {
+                        document.getElementById('resp').innerHTML = res.error;
+                    }
+                }
+            };
+            xh.open('POST', '/api/post/create', true);
+            xh.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xh.send(JSON.stringify(data));
+        }
+        function preemptive_upload() {
+            var fi = document.getElementById('file');
+            if (fi.files.length == 0) {
+                return '';
+            }
+            var f = fi.files[0];
+            var fd = new FormData();
+            fd.append(f.name, f);
+            var xh = new XMLHttpRequest();
+            xh.open('POST', '/api/upload/' + f.name, false); // false=synchronous
+            xh.send(fd);
+            if (xh.status=200) {
+                var res = JSON.parse(xh.response);
+                if (res.status == 201) {
+                    return res.data;
+                } else {
+                    return '';
+                }
+            }
+        }
+    </script>
+{% endblock %}

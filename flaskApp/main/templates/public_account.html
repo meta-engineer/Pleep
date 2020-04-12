@@ -1,0 +1,325 @@
+{% extends 'public_layout.html' %}
+
+<!-- This should only be accessable while logged in -->
+
+{% block body %}
+    <div class="row rounded bg-light p-3" style="border-style: solid; border-color:{{ user_obj.color }}">
+        <div class="col-sm-2 p-0" >
+            <div style="display:block; padding-bottom:100%; height:0">
+                <img id='pp'src="" alt="profile picture" 
+                style="position:absolute; top:0; bottom:0; left:0; right:0; width:100%; height:100%; object-fit:cover; border-radius:20%">
+            
+                {% if user_obj.image_filename %}
+                    <script>document.getElementById('pp').src = '/api/download/{{ user_obj.image_filename }}';</script>
+                {% else %}
+                    <script>document.getElementById('pp').src = "/static/gulls/5cd50efc-swns_fastest_seagull_02.jpg";</script>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <h2 style="word-wrap: break-word">{{ user_obj.name }}</h2>
+            <div>Lifetime Pleeps: {{ user_obj.lifetime_pleeps }}</div>
+            <div>Followers: <span id='followers'>{{ user_obj.followersCount }}</span></div>
+            <div>Following: <span id='following'></span></div>
+            <script>document.getElementById('following').innerHTML = JSON.parse('{{ user_obj.followingIDs }}').length</script>
+        </div>
+        <div class="col-sm-4" style="text-align: right">
+            <h2>Pleep Clout:</h2>
+            <h2>{{ user_obj.clout }}</h2>
+        </div>
+        <div class="col-sm-2 mt-2">
+            <!-- 
+                if self disable, if not logged in redirect to register
+                if logged in:   already following -> unfollow
+                                not following -> follow
+            -->
+            {% if session.logged_in and not session.username == user_obj.name %}
+                {% if user_obj.id in self_obj.followingIDs %}
+                    <a href="#"><button id ="follow_btn" onclick="post_unfollow()" class="btn btn-secondary w-100 px-2">Unfollow</button></a>
+                {% else %}
+                    <a href="#"><button id ="follow_btn" onclick="post_follow()" class="btn btn-primary w-100 px-2">Follow</button></a>
+                {% endif %}
+            {% else %}
+                <button class="btn btn-primary w-100" disabled>Follow</button>
+            {% endif %}
+            <script>
+                var snapshot_followers = parseInt('{{ user_obj.followersCount }}');
+                function post_follow() {
+                    // back-end takes tofollow from url and folloer from session
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', '/api/account/{{ user_obj.id }}/follow', true);
+                    xhr.onreadystatechange = function() {
+                        if (this.readyState == 4 && this.status == 200) {
+                            var res = JSON.parse(this.response);
+                            if (res.status == 200) {
+                                document.getElementById('follow_btn').innerHTML = 'Unfollow';
+                                document.getElementById('follow_btn').classList.add('btn-secondary');
+                                document.getElementById('follow_btn').classList.remove('btn-primary');
+                                document.getElementById('follow_btn').onclick = post_unfollow;
+                                // pseudo update follower count
+                                snapshot_followers += 1;
+                                document.getElementById('followers').innerHTML = snapshot_followers;
+                            } else {
+                                document.getElementById('follow_btn').innerHTML = 'Failed';
+                                document.getElementById('follow_btn').classList.add('btn-danger');
+                                document.getElementById('follow_btn').classList.remove('btn-primary');
+                                document.getElementById('follow_btn').disabled = true;
+                            }
+                        }
+                    };
+                    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                    xhr.send();
+                }
+                function post_unfollow() {
+                    // back-end takes tofollow from url and folloer from session
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', '/api/account/{{ user_obj.id }}/unfollow', true);
+                    xhr.onreadystatechange = function() {
+                        if (this.readyState == 4 && this.status == 200) {
+                            var res = JSON.parse(this.response);
+                            if (res.status == 200) {
+                                document.getElementById('follow_btn').innerHTML = 'Follow';
+                                document.getElementById('follow_btn').classList.add('btn-primary');
+                                document.getElementById('follow_btn').classList.remove('btn-secondary');
+                                document.getElementById('follow_btn').onclick = post_follow;
+                                // pseudo update follower count
+                                snapshot_followers -= 1;
+                                document.getElementById('followers').innerHTML = snapshot_followers;
+                            } else {
+                                document.getElementById('follow_btn').innerHTML = 'Failed';
+                                document.getElementById('follow_btn').classList.add('btn-danger');
+                                document.getElementById('follow_btn').classList.remove('btn-secondary');
+                                document.getElementById('follow_btn').disabled = true;
+                            }
+                        }
+                    };
+                    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                    xhr.send();
+                }
+            </script>
+        </div>
+        <div class="col-sm-10" style="margin-top:10px">
+            <hr>
+        </div>
+    </div>
+    <div class="row rounded mt-3 mx-1">
+        <div class="col-sm-2 p-0">
+            <a href="/account/{{ user_obj.name }}?order=popular">
+                <button id="order_popular" class="bg-dark p-2 w-100 text-white" style="border-top-left-radius: 50%; border-top-right-radius:50%;">
+                    Popular
+                </button>
+            </a>
+        </div>
+        <div class="col-sm-2 p-0">
+                <a href="/account/{{ user_obj.name }}?order=new">
+                <button id="order_newest" class="bg-dark p-2 w-100 text-white" style="border-top-left-radius: 50%; border-top-right-radius:50%;">
+                    Newest
+                </button>
+            </a>
+        </div>
+        <div class="col-sm-6 p-0 text-center">
+            <h3>Pleepline</h3>
+        </div>
+        
+        <div class="col-sm-1 p-0">
+            <a href="/account/{{ user_obj.name }}?order={{ order }}&page={{ page-1 }}">
+                <button id="prev_page" class="bg-dark p-2 w-100 text-white" style="border-top-left-radius: 50%; border-top-right-radius:50%;">
+                    Prev
+                </button>
+            </a>
+        </div>
+        <div class="col-sm-1 p-0">
+            <a href="/account/{{ user_obj.name }}?&order={{ order }}&page={{ page+1 }}">
+                <button id="next_page" class="bg-dark p-2 w-100 text-white" style="border-top-left-radius: 50%; border-top-right-radius:50%;">
+                    Next
+                </button>
+            </a>
+        </div>
+    </div>
+    <!-- 
+        just pleeps (with belonging thread)
+     -->
+    <div id="pleepline">
+
+    </div>
+    
+    <a href="#top">
+        <button class="btn btn-secondary">
+            Back to top
+        </button>
+    </a>
+
+    <script>
+        posts_data = {};
+        //set tabs
+        if ('{{ order }}' == 'popular') {
+            document.getElementById('order_popular').classList.add('bg-primary');
+            document.getElementById('order_popular').classList.remove('bg-dark');
+        } else if ('{{ order }}' == 'new') {
+            document.getElementById('order_newest').classList.add('bg-primary');
+            document.getElementById('order_newest').classList.remove('bg-dark');
+        }
+        if ('{{ page }}' == "0") {
+            document.getElementById('prev_page').disabled = true;
+            document.getElementById('prev_page').classList.add('text-muted');
+        }
+
+        function build_pleepline() {
+            data = {};
+            // onyl from user
+            data['author_id'] = '{{ user_obj.id }}';
+            // dispatch order term based on type
+            if ('{{ order }}' == 'new') {
+                data['order'] = 'timestamp';
+            } else if ('{{ order }}' == 'popular') {
+                data['order'] = 'likes';
+            }
+            // limit
+            // CHEAT: dont limit query and just slice out desired results
+            res_min = parseInt('{{ page*limit }}');
+            res_max = parseInt('{{ page*limit+limit-1 }}');
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/post/query', true);
+            xhr.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    var res = JSON.parse(this.response);
+                    if (res.status == 200) {
+                        posts_data = res.data;
+                        // if feature is set build it as an extra
+                        if (parseInt('{{ feature }}')) {
+                            // search res for featured post
+                            fp = res.data.find(p => p.id === parseInt('{{ feature }}'));
+                            if (fp) {
+                                var div = build_post_for_pleepline(fp);
+                                div.setAttribute('class', 'container bg-warning p-3 mb-2 rounded');
+                                document.getElementById('pleepline').appendChild(div);
+                                // init like button
+                                if ('{{ self_obj }}' == 'None' || (fp.thread_timestamp_close != null && Date.now() > p.thread_timestamp_close*1000)) {
+                                    document.getElementById('like_button'+fp.id).disabled = true;
+                                } else if (JSON.parse('{{ self_obj.likedIDs }}').includes(fp.id)) {
+                                    document.getElementById('like_button'+fp.id).classList.add('btn-primary');
+                                    document.getElementById('like_button'+fp.id).classList.remove('btn-secondary');
+                                }
+                            }
+                        }
+                        for(var i = res_min; i < Math.min(res_max, res.data.length); i++) {
+                            var p = res.data[i];
+                            // skip duplicate featured post
+                            if (p.id == parseInt('{{ feature }}')) {
+                                continue;
+                            }
+                            var div = build_post_for_pleepline(p);
+                            document.getElementById('pleepline').appendChild(div);
+                            // init like button
+                                console.log(p.thread_timestamp_close);
+                            if ('{{ self_obj }}' == 'None' || (p.thread_timestamp_close != null && Date.now() > p.thread_timestamp_close*1000)) {
+                                document.getElementById('like_button'+p.id).disabled = true;
+                            } else if (JSON.parse('{{ self_obj.likedIDs }}').includes(p.id)) {
+                                document.getElementById('like_button'+p.id).classList.add('btn-primary');
+                                document.getElementById('like_button'+p.id).classList.remove('btn-secondary');
+                            }
+                        }
+                        if (res.data.length == 0) {
+                            var div = document.createElement('div');
+                            div.setAttribute('class', 'row bg-light rounded p-3 mb-2');
+                            div.innerHTML = "<h4>No pleeps have been pleeped by this pleeper</h4>";
+                            document.getElementById('pleepline').appendChild(div);
+                        }
+                        // user results to mod page UI
+                        if (res.data.length < res_max) {
+                            document.getElementById('next_page').disabled = true;
+                            document.getElementById('next_page').classList.add('text-muted');
+                        }
+                    } else {
+                        console.log(res.error);
+                    }
+                }
+            };
+            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xhr.send(JSON.stringify(data));
+        }
+        window.onload = build_pleepline;
+
+        function build_post_for_pleepline(p) {
+            var div = document.createElement('div');
+            div.setAttribute('class', 'container bg-light p-3 mb-2 rounded');
+            div.setAttribute('style', "overflow:auto; border-style: solid; border-color: " + p.author_color);
+            // differ data type for img, video audio tags
+            let p_utx = p['timestamp'];
+            var p_date = new Date(parseInt(p_utx) * 1000);
+            var date_string = (p_date.getMonth()+1) + "/" + p_date.getDate() + "/" + p_date.getFullYear() + " " + p_date.getHours() + ":" + (p_date.getMinutes()<10 ? '0' : '') + p_date.getMinutes();
+            div.innerHTML = "<div class='row'><div class='col-sm-8'>"
+                + "<a class='text-decoration-none' href='/thread/" + p.thread_id + "?feature=" + p.id + "'>"
+                + "<h5 class='overflow-hidden pb-1'>" + date_string + " in " + p['thread_title'] + "</h5></a></div>"
+                + "<div class='col-sm-4 text-right'><button id='like_button" + p.id + "' onclick='toggle_like(" + p.id + ")' class='btn btn-secondary'>" + p['likes'] + " likes </button></div></div><hr>";
+            if (p['data_type'] == 'audio') {
+                div.innerHTML+= "<audio style='width:100%' controls>"
+                    + "<source src='/api/download/" + p['data_filename'] + "' type='audio/mpeg'>"
+                    + "</audio>";
+            } else if (p['data_type'] == "video") {
+                div.innerHTML+= "<video width='100%' style='max-height:400px' controls>"
+                    + "<source src='/api/download/" + p['data_filename'] + "' type='video/mp4' >"
+                    + "</audio>";
+            } else if (p['data_type'] == "img") {
+                div.innerHTML+= "<a href='/api/download/" + p['data_filename'] + "'>"
+                    + "<img class='img-fluid m-2 float-left' style='width:30%' src='/api/download/" + p['data_filename'] + "'>"
+                    + "</a>";
+            } else if (p['data_type'] == null) {
+                //pass
+            } else {
+                div.innerHTML+= "<a href='/api/download/" + p['data_filename'] + "'><button class='btn btn-primary'>" + p['data_filename'] + "</button></a>";
+            }
+            div.innerHTML+= "<p class='m-0 p-2'>" + p['text_content'] + "</p>";
+            return div;
+        }
+                
+        function toggle_like(id) {
+            p = posts_data.find(o => o.id === id);
+            if (!(p.likerIDs.includes(parseInt('{{ self_obj.id }}')))) {
+                var xh = new XMLHttpRequest();
+                xh.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                        var res = JSON.parse(this.response);
+                        if (res.status == 200) {
+                            p.likerIDs.push(parseInt('{{ self_obj.id }}'));
+                            document.getElementById('like_button' + id).innerHTML = p.likerIDs.length + " likes";
+                            document.getElementById('like_button' + id).classList.add('btn-primary');
+                            document.getElementById('like_button' + id).classList.remove('btn-secondary');     
+                        } else {
+                            document.getElementById('like_button' + id).innerHTML = "Failed";
+                            document.getElementById('like_button' + id).classList.add('btn-danger');
+                            document.getElementById('like_button' + id).classList.remove('btn-secondary'); 
+                        }
+                    }
+                };
+                xh.open('POST', '/api/post/' + id + '/like', true);
+                xh.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                xh.send();
+            } else {
+                var xh = new XMLHttpRequest();
+                xh.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                        var res = JSON.parse(this.response);
+                        if (res.status == 200) {
+                            p.likerIDs.splice(p.likerIDs.indexOf(parseInt('{{ self_obj.id }}')), 1);
+                            document.getElementById('like_button' + id).innerHTML = p.likerIDs.length + " likes";
+                            document.getElementById('like_button' + id).classList.remove('btn-primary');
+                            document.getElementById('like_button' + id).classList.add('btn-secondary');
+                        } else {
+                            document.getElementById('like_button' + id).innerHTML = "Failed";
+                            document.getElementById('like_button' + id).classList.add('btn-danger');
+                            document.getElementById('like_button' + id).classList.remove('btn-primary'); 
+                        }
+                    }
+                };
+                xh.open('POST', '/api/post/' + id + '/unlike', true);
+                xh.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                xh.send();
+
+            }
+        }
+    </script>
+
+    
+{% endblock %}

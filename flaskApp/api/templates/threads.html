@@ -1,0 +1,30 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+    <h5>THREADS</h5>
+    <div id='resp'>uhhh</div>
+    <script>
+        var xh = new XMLHttpRequest();
+        xh.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                var res = JSON.parse(this.response);
+                console.log(res);
+                if (res.status == 200) {
+                    var htmlOut = document.getElementById('resp');
+                    htmlOut.innerHTML = "";
+                    for (const i in res.data) {
+                        htmlOut.innerHTML += "#" + res.data[i].id + " "
+                            + res.data[i].title + ": " 
+                            + res.data[i].postCount + '<br/>';
+                    }
+                } else {
+                    document.getElementById('resp').innerHTML = JSON.stringify(res);
+                }
+            }
+        };
+        xh.open('POST', '/api/thread/query', true);
+        xh.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        xh.send(JSON.stringify({})); // send query terms
+        //xh.send();
+    </script>
+{% endblock %}

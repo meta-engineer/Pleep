@@ -1,0 +1,40 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+    <h5>PREVIEW THREAD</h5>
+    <form action="" method="">
+        <button type="submit" disabled class="d-none" aria-hidden="true">shh</button>
+        <div class="form-group">
+            <label>ID</label>
+            <input type="number" id="id" class="form-control" />
+        </div>
+        <button type="button" onclick="fetch_thread(document.getElementById('id').value)" class="btn btn-primary">Go to Thread</button>
+    </form>
+    <div id='resp' class="alert"></div>
+    <script>
+        function fetch_thread(id) {
+            var xh = new XMLHttpRequest();
+            xh.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    var res = JSON.parse(this.response);
+                    if (res.status == 200) {
+                        // generate html blocks
+                        document.getElementById('resp').innerHTML = JSON.stringify(res.data);
+                        for (var i=0; i < res.data.postIDs.length; i++) {
+                            var div = document.createElement('div');
+                            div.setAttribute('class', 'alert');
+                            div.innerHTML = res.data.postIDs[i];
+                            document.getElementById('posts').appendChild(div);
+                            // set async requests to build posts
+                        }
+                    } else {
+                        document.getElementById('resp').innerHTML = JSON.stringify(res);
+                    }
+                }
+            };
+            xh.open('POST', '/api/thread/' + id, true);
+            xh.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xh.send();
+        }
+    </script>
+{% endblock %}

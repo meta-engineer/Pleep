@@ -1,0 +1,59 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+    {% if session.logged_in %} 
+        <div class="alert alert-success">
+            <h3>Welcome {{session.username}}</h1>
+        </div>
+    {% else %}
+        <div class=" alert alert-warning">
+            <h3>No cookies found</h2>
+        </div>
+    {% endif %}
+    <p class="lead">
+        This is the private test site for pleep/parkmark/lifeline backend.
+    </p>
+    <p class="lead">
+        This frontend provides one-to-one access for the Flask app endpoints.
+        That is, each primary endpoint is mirrored by an html page that posts and recieves from it.
+    </p>
+    <div class="container" id="endpoints">
+        <script>
+            var endpoints = {};
+            endpoints["register"] = "Add entry to user database";
+            endpoints["login"] = "Check users database for entry and apply cookies";
+            endpoints["logout"] = "Clear logged_in cookies";
+            endpoints["account"] = "Fetch self info";
+            endpoints["account/X"] = "Fetch account info";
+            endpoints["account/query"] = "Query users database";
+            endpoints["account/X/follow"] = "Add followee to logged_in user";
+            endpoints["account/X/unfollow"] = "Remove followee from logged_in user";
+            endpoints["thread/X"] = "Fetch info on single thread";
+            endpoints["thread/query"] = "Query threads database";
+            endpoints["thread/create"] = "Add entry to thread database";
+            endpoints["thread/X/delete"] = "Remove entry to thread database (permissions, recursive)";
+            endpoints["thread/X/follow"] = "Follow thread on logged-in user";
+            endpoints["thread/X/unfollow"] = "Unfollow thread on logged_in user";
+            endpoints["post/X"] = "Fetch info on single post";
+            endpoints["post/query"] = "Query posts database";
+            endpoints["post/create"] = "Add entry to post database";
+            endpoints["post/X/delete"] = "Remove entry to post database (permissions)";
+            endpoints["post/X/like"] = "Like post on logged_in user";
+            endpoints["post/X/unlike"] = "Unlike post on logged-in user";
+            endpoints["upload"] = "Upload files to be referenced in posts";
+
+            for (var key in endpoints) {
+                document.getElementById('endpoints').innerHTML +=
+                '<div class="row m-2">\
+                    <div class="col-sm-4 text-right">\
+                        <a href=' + '/api/' + key + '>\
+                            <button type="button" class="btn btn-secondary">/' + key + '</button>\
+                        </a>\
+                    </div>\
+                    <div class="col-sm-8 p-1">' + endpoints[key] + '</div>\
+                </div>';
+            }
+        </script>
+    </div>
+
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends 'public_layout.html' %}
+
+{% block body %}
+    <h2>404</h2>
+    <h4> There's nothing at this address </h4>
+    <hr>
+    <p><a href="{{ url_for('main.index') }}"><button class="btn btn-primary">Return home</button></a></p>
+{% endblock %}

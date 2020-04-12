@@ -1,0 +1,160 @@
+﻿<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset='utf-8'>
+        <title>Pleep.alpha</title>
+        <!-- *bootstrap reference -->
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+        <link rel="shortcut icon" href="{{ url_for('static', filename='pleep_icon_P.ico') }}">
+        <!--
+            alter login bar based on cookies
+            background:linear-gradient(#ffffff, #3277c1);
+            background-image:url('/static/pleep_repeat.png'); background-color:#bcd7ff; 
+        -->
+    </head>
+    <body style="background:linear-gradient(#e4efff, #1c6abd);">
+
+        <nav class="navbar fixed-top bg-dark navbar-dark navbar-expand-sm">
+            <div class="container-fluid">
+                <div class="navbar-header">
+                    <a class="text-decoration-none text-light" href="/">
+                        <div class="h4 mb-0">
+                            <img src="/static/pleep_icon.ico" alt="pleep_logo" style="height:40px"/>
+                            Pleep<span class="lead">.alpha</span>
+                        </div>
+                    </a>
+                </div>
+                <ul class="nav navbar-nav">
+                    <form action="" method="" class="form-inline">
+                        <button type="submit" disabled class="d-none" aria-hidden="true">shh</button>
+                        <input type="text" id="search_string" class="form-control mr-2" />
+                        <button type="button" onclick="search_redirect()" class="btn btn-secondary">Search</button>
+                    </form>
+                    <script>
+                        function search_redirect() {
+                            window.location = '/search?substr=' + document.getElementById('search_string').value
+                        }
+                    </script>
+                </ul>
+                <ul class="nav navbar-nav navbar-right text-light">
+                    <li class="dropdown">
+                        {% if session.logged_in %}
+                            <a class="dropdown-toggle text-decoration-none text-light" data-toggle="dropdown" href="#">{{ session.username }}</a>
+                            <ul class="dropdown-menu dropdown-menu-right">
+                                <li class="px-2">
+                                    <a href="/account">Account Overview</a>
+                                    <a href="/account/{{session.username}}">Public Profile</a>
+                                    <hr>
+                                    <button type="button" onclick="in_place_logout()" class="btn btn-secondary">Log Out</button>
+                                    <div class="my-3 text-danger" id="nav_resp"></div>
+                                    <script>
+                                        function in_place_logout() {
+                                            var xhr = new XMLHttpRequest();
+                                            xhr.onreadystatechange = function() {
+                                                if (this.readyState == 4 && this.status == 200) {
+                                                    var res = JSON.parse(this.response);
+                                                    if (res.status == 200) {
+                                                        location.reload();
+                                                    } else {
+                                                        document.getElementById('nav_resp').innerHTML= res.error;
+                                                    }
+                                                }
+                                            };
+                                            xhr.open('POST', '/api/logout', true);
+                                            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                                            xhr.send();
+                                        }
+                                    </script>
+                                </li>
+                            </ul>
+                        {% else %}
+                            <a class="dropdown-toggle text-decoration-none text-light" data-toggle="dropdown" href="#">Log In</a>
+                            <ul class="dropdown-menu dropdown-menu-right">
+                                <li class="px-2">
+                                    <form action="" method="">
+                                        <button type="submit" disabled class="d-none" aria-hidden="true">shh</button>
+                                        <div class="form-group">
+                                            <label>Username</label>
+                                            <input type="text" id="nav_username" class="form-control" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Password</label>
+                                            <input type="password" id="nav_password" class="form-control" />
+                                        </div>
+                                        <button type="button" onclick="in_place_login()" class="btn btn-primary">Log In</button>
+                                        <div class="my-3 text-danger" id="nav_resp"></div>
+                                        <script>
+                                            // send to login server and reload current page?
+                                            function in_place_login() {
+                                                var data={};
+                                                data['username'] = document.getElementById('nav_username').value;
+                                                data['password'] = document.getElementById('nav_password').value;
+                                                var xhr = new XMLHttpRequest();
+                                                xhr.onreadystatechange = function() {
+                                                    if (this.readyState == 4 && this.status == 200) {
+                                                        var res = JSON.parse(this.response);
+                                                        if (res.status == 200) {
+                                                            location.reload();
+                                                        } else {
+                                                            document.getElementById('nav_password').value = '';
+                                                            document.getElementById('nav_resp').innerHTML= "Login failed";
+                                                        }
+                                                    }
+                                                };
+                                                xhr.open('POST', '/api/login', true);
+                                                xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                                                xhr.send(JSON.stringify(data));
+                                            }
+                                        </script>
+                                        <hr>
+                                        <a href="/forgot_password">Forgot Pleepword</a><br>
+                                        <a href="/register">Become a Pleeper</a>
+                                    </form>
+                                </li>
+                            </ul>
+                        {% endif %}
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        
+        <div class="container bg-none p-0 text-break" style="margin-top:70px;">
+                {% for category, message in get_flashed_messages(with_categories=true) %}
+                    <div class="alert alert-{{ category }} mt-4">{{ message }}</div>
+                {% endfor %}
+                {% block body%}{% endblock %}
+        </div>
+
+        <footer class="footer border-top bg-dark" style="padding-top:30px; margin-top:10px; border-top-right-radius:25px; border-top-left-radius: 25px">
+            <div class="container">
+                <div class="row text-secondary">
+                    <div class="col-sm-7">
+                                <h5 class="text-uppercase">Take a peep at our Pleep</h5>
+                                <p>Pleep is an uncensored not for profit e-zine</p>
+                    </div>
+                    <div class="col-sm-5">
+                                <h5 class="text-uppercase">JOIN THE FLOCK</h5>
+                                <ul class="list-unstyled">
+                            <li>
+                                <a href="https://oldschool.runescape.wiki/w/Gnome_child">Discord</a>
+                            </li>
+                            <li>
+                                <a href="https://www.reddit.com/r/DeepFriedMemes/">Current Media</a>
+                            </li>
+                                </ul>
+                    </div>
+                </div>
+            </div>
+            
+                <div class="footer-copywright py-3 text-center text-muted" style="background-color: rgb(31, 31, 31)">
+                    Copywrong! Haha Gottem
+                </div>
+        </footer>
+
+        <!-- *bootstrap reference -->
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+    </body>
+</html>

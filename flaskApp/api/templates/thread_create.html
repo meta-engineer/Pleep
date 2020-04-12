@@ -1,0 +1,37 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+    <h5>CREATE THREAD</h5>
+    <form action="" onsubmit="post_create_thread()">
+        <div class="form-group">
+            <label>Title</label>
+            <input type="text" name="title" class="form-control" />
+        </div>
+        <button type="button" onclick="post_create_thread()" class="btn btn-primary">Create</button>
+    </form>
+    <div id='resp' class="alert"></div>
+    <script>
+        function post_create_thread() {
+            var data = {};
+            data['title'] = document.getElementsByName('title')[0].value;
+
+            // pre sending validate
+            //address format, password match
+
+            var xh = new XMLHttpRequest();
+            xh.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    var res = JSON.parse(this.response);
+                    if (res.status == 200) {
+                        document.getElementById('resp').innerHTML = JSON.stringify(res);
+                    } else {
+                        document.getElementById('resp').innerHTML = JSON.stringify(res);
+                    }
+                }
+            };
+            xh.open('POST', '/api/thread/create', true);
+            xh.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xh.send(JSON.stringify(data));
+        }
+    </script>
+{% endblock %}

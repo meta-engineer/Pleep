@@ -1,0 +1,179 @@
+{% extends 'public_layout.html' %}
+
+
+{% block body %}
+
+    <div class="row ">
+        <div class="col-sm-2 p-0">
+            <a href="/search?substr={{ substr }}&type={{ type }}&order=popular&page={{ page }}">
+                <button id="order_popular" class="bg-dark p-2 w-100 text-white" style="border-top-left-radius: 50%; border-top-right-radius:50%;">
+                    Popular
+                </button>
+            </a>
+        </div>
+        <div class="col-sm-2 p-0">
+            <a href="/search?substr={{ substr }}&type={{ type }}&order=new&page={{ page }}">
+                <button id="order_newest" class="bg-dark p-2 w-100 text-white" style="border-top-left-radius: 50%; border-top-right-radius:50%;">
+                    Newest
+                </button>
+            </a>
+        </div>
+        <div class="col-sm-2">
+            <div class="dropdown">
+                <button class="btn btn-dark dropdown-toggle" type=button" id="searchDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Search type
+                </button>
+                <div class="dropdown-menu bg-dark" aria-labelledby="searchDropdown">
+                    <a class="dropdown-item text-white" href="/search?substr={{ substr }}&type=post&order={{ order }}&page={{ page }}">Posts</a>
+                    <a class="dropdown-item text-white" href="/search?substr={{ substr }}&type=thread&order={{ order }}&page={{ page }}">Threads</a>
+                    <a class="dropdown-item text-white" href="/search?substr={{ substr }}&type=account&order={{ order }}&page={{ page }}">Pleepers</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4 pt-2 text-center">
+            <h5>Results {{ page * limit+1}} to <span id="result_max">{{ page*limit+limit }}</span></h5>
+        </div>
+        <div class="col-sm-1 p-0">
+            <a href="/search?substr={{ substr }}&type={{ type }}&order={{ order }}&page={{ page-1 }}">
+                <button id="prev_page" class="bg-dark p-2 w-100 text-white" style="border-top-left-radius: 50%; border-top-right-radius:50%;">
+                    Prev
+                </button>
+            </a>
+        </div>
+        <div class="col-sm-1 p-0">
+            <a href="/search?substr={{ substr }}&type={{ type }}&order={{ order }}&page={{ page+1 }}">
+                <button id="next_page" class="bg-dark p-2 w-100 text-white" style="border-top-left-radius: 50%; border-top-right-radius:50%;">
+                    Next
+                </button>
+            </a>
+        </div>
+    </div>
+    <div id="results">
+
+    </div>
+
+    <script>
+        if ('{{ order }}' == 'popular') {
+            document.getElementById('order_popular').classList.add('bg-primary');
+            document.getElementById('order_popular').classList.remove('bg-dark');
+        } else if ('{{ order }}' == 'new') {
+            document.getElementById('order_newest').classList.add('bg-primary');
+            document.getElementById('order_newest').classList.remove('bg-dark');
+        }
+
+        if ('{{ type }}' == "post") {
+            document.getElementById('searchDropdown').innerHTML = "Posts";
+        } else if ('{{ type }}' == "thread") {
+            document.getElementById('searchDropdown').innerHTML = "Threads";
+        } else if ('{{ type }}' == "account") {
+            document.getElementById('searchDropdown').innerHTML = "Pleepers";
+        }
+
+        if ('{{ page }}' == "0") {
+            document.getElementById('prev_page').disabled = true;
+            document.getElementById('prev_page').classList.add('text-muted');
+        }
+        document.getElementById('search_string').value = '{{ substr }}'
+
+        function build_results() {
+            data = {};
+            // substr
+            if ('{{ substr }}' != '') {
+                data['substr'] = '{{ substr }}'
+            }
+            // dispatch order term based on type
+            if ('{{ order }}' == 'new') {
+                    data['order'] = 'timestamp';
+            } else if ('{{ order }}' == 'popular') {
+                if ('{{ type }}' == 'post') { 
+                    data['order'] = 'likes';
+                } else if ('{{ type }}' == 'thread') { 
+                    data['order'] = 'total_likes';
+                } else if ('{{ type }}' == 'account') {
+                    data['order'] = 'clout';
+                }
+            }
+            // limit
+            // CHEAT: dont limit query and just slice out desired results
+            res_min = parseInt('{{ page*limit }}');
+            res_max = parseInt('{{ page*limit+limit-1 }}');
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/{{ type }}/query', true);
+            xhr.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    var res = JSON.parse(this.response);
+                    if (res.status == 200) {
+                        for(var i = res_min; i < Math.min(res_max, res.data.length); i++) {
+                            var div = document.createElement('div');
+                            div.setAttribute('class', 'row bg-light rounded p-3 mb-2');
+                            if ('{{ type }}' == 'account') {
+                                div.setAttribute('style', "border-style: solid; border-color:" + res.data[i].color);
+                                fn = '';
+                                if (res.data[i].image_filename) {
+                                    fn = "/api/download/" + res.data[i].image_filename;
+                                } else {
+                                    fn = "/static/gulls/5cd50efc-swns_fastest_seagull_02.jpg";
+                                }
+                                div.innerHTML = "<div class='col-sm-1 p-0'>"
+                                    + "<div style='display:block; padding-bottom:100%; height:0'>"
+                                    + "<img alt='follow picture' src='" + fn + "'"
+                                    + "style='position:absolute; top:0; bottom:0; left:0; right:0; width:100%; height:100%; object-fit:cover; border-radius:20%; max-width: 200px;'>"
+                                    + "</div></div>"
+                                    + "<div class='col-sm-11'>"
+                                    + "<a class='text-decoration-none' href='/account/" + res.data[i].name +"'>"
+                                    + "<h4>" + res.data[i].name + "</h4>"
+                                    + res.data[i].clout + " clout | "
+                                    + res.data[i].followersCount + " followers | "
+                                    + res.data[i].lifetime_pleeps + " lifetime pleeps"
+                                    + "</a></div>";
+                            } else if ('{{ type }}' == 'post') {
+                                div.setAttribute('style', "border-style: solid; border-color:" + res.data[i].author_color);
+                                var pleep_date = new Date(parseInt(res.data[i].timestamp) * 1000);
+                                div.innerHTML = "<a class='row text-decoration-none text-dark w-100 px-3' href='/thread/" + res.data[i].thread_id + "?feature=" + res.data[i].id + "'>"
+                                    + "<div class='col-sm-8 p-0'>"
+                                    + "<h5 style='text-overflow: ellipsis; white-space:nowrap; overflow: hidden; height:100%'>"
+                                    + "\"" + res.data[i].text_content + "\"</h5></div>"
+                                    + "<div class='col-sm-4 p-0'>"
+                                    + " posted in <b>" + res.data[i].thread_title + "</b><br>"
+                                    + " by <b>" + res.data[i].author_name + "</b><br>"
+                                    + " on " + (pleep_date.getMonth()+1) + "/" + pleep_date.getDate() + "/" + pleep_date.getFullYear() + "<br>"
+                                    + res.data[i].likes + " likes</div></a>";
+                            } else if ('{{ type }}' == 'thread') {
+                                var pleep_date = new Date(parseInt(res.data[i].timestamp) * 1000);
+                                div.innerHTML = "<a href='/thread/" + res.data[i].id + "' style='width:100%' class='row text-decoration-none text-dark px-3'>"
+                                    + "<div class='col-sm-8 p-0 m-0'><h5 style='text-overflow: ellipsis; white-space:nowrap; overflow: hidden; height:100%'>"
+                                    + "\"" + res.data[i].title + "\"</h5></div>"
+                                    + "<div class='col-sm-4 p-0 m-0'>"
+                                    + " created by " + res.data[i].creator + "<br>"
+                                    + " on " + (pleep_date.getMonth()+1) + "/" + pleep_date.getDate() + "/" + pleep_date.getFullYear() + "<br>"
+                                    + res.data[i].total_likes + " total post likes</div></a>";
+                            } else {
+                                div.innerHTML = JSON.stringify(res.data[i]);
+                            }
+                            document.getElementById('results').appendChild(div);
+                        }
+                        if (res.data.length == 0) {
+                            var div = document.createElement('div');
+                            div.setAttribute('class', 'row bg-light rounded p-3 mb-2');
+                            div.innerHTML = "<h4>No results... app is dead</h4>";
+                            document.getElementById('results').appendChild(div);
+                        }
+                        // user results to mod page UI
+                        if (res.data.length < res_max) {
+                            document.getElementById('next_page').disabled = true;
+                            document.getElementById('next_page').classList.add('text-muted');
+                            document.getElementById('result_max').innerHTML = res.data.length;
+                        }
+                    } else {
+                        console.log(res.error);
+                    }
+                }
+            };
+            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xhr.send(JSON.stringify(data));
+        }
+        window.onload = build_results;
+    </script>
+    
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends 'public_layout.html' %}
+
+{% block body %}
+    <h5>
+        REGISTER
+        <a class="btn btn-secondary float-right" href="/info" role="button">More info on Pleep &raquo;</a>
+    </h5>
+    <p>Usernames are unique so you have to find an original one.</p>
+    <p>While we encourage strong password habits, for simplicity we only enforce length requirement (at least 8 characters). Good Luck!</p>
+    <p>Usernames and passwords are CasE SeNsiTivE, be careful!</p>
+    <hr>
+    <form action="" method="POST">
+        <button type="submit" disabled class="d-none" aria-hidden="true">shh</button>
+        <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="username" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="password" class="form-control"/>
+        </div>
+        <div class="form-group">
+            <label>Confirm Password</label>
+            <input type="password" id="password_confirm" class="form-control"/>
+        </div>
+        <div class="form-group">
+            <label>Email Address (optional)</label>
+            <input type="text" id="email" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label>User colour (optional)</label>
+            <input type="color" id="color" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label>User Image (optional)</label>
+            <input type="file" name="file" id="file" class="form-control"/>
+        </div>
+        <button type="button" onclick="post_register()" class="btn btn-primary">Register</button>
+    </form>
+    <div id='resp' class="alert-danger m-2 rounded"></div>
+    <script>
+        // send POST request to upload endpoint, on fail display to resp
+        // on success send POST request to /api/register
+        // on success displays button for post_login_redirect() (below)
+        function post_register() {
+            var data = {};
+            data['address'] = document.getElementById('email').value;
+            data['username'] = document.getElementById('username').value;
+            data['password'] = document.getElementById('password').value;
+            data['password_confirm'] = document.getElementById('password_confirm').value;
+            data['color'] = document.getElementById('color').value;
+
+            // server validates, should also sanitize
+            // preemptive image upload, if fail abort and post error
+            // PEU returns '' on no file and failed upload...
+            // should throw error on fail, '' on no upload
+            try {
+                var fn = preemptive_upload();
+                if (fn != '') {
+                    data['image_filename'] = fn;
+                }
+            } catch(err) {
+                document.getElementById('resp').innerHTML = str(err)
+                return
+            }
+
+            var xh = new XMLHttpRequest();
+            xh.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    var res = JSON.parse(this.response);
+                    if (res.status == 200) {
+                        document.getElementById('email').disabled = true;
+                        document.getElementById('username').disabled = true;
+                        document.getElementById('password').disabled = true;
+                        document.getElementById('password_confirm').disabled = true;
+                        document.getElementById('color').disabled = true;
+                        document.getElementById('file').disabled = true;
+
+                        document.getElementById('resp').classList.remove('alert-danger');
+                        document.getElementById('resp').classList.remove('alert-success');
+                        document.getElementById('resp').innerHTML = "Registration Success! <br/><br/>";
+                        document.getElementById('resp').innerHTML+= "<button onclick='post_login_redirect()' class='btn btn-primary'>Click here to login</button>";
+                    } else {
+                        document.getElementById('resp').innerHTML = res.error;
+                    }
+                }
+            };
+            xh.open('POST', '/api/register', true);
+            xh.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xh.send(JSON.stringify(data));
+        }
+
+        // Accepts name and pass, sends them to auto login and redirect to /account
+        function post_login_redirect() {
+            var data = {};
+            data['username'] = document.getElementById('username').value;
+            data['password'] = document.getElementById('password').value;
+
+            var xh = new XMLHttpRequest();
+            xh.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    var res = JSON.parse(this.response);
+                    if (res.status == 200) {
+                        window.location.replace("/account");
+                    } else {
+                        document.getElementById('resp').innerHTML += "<br/>Log in failed, return to the home page and try again."
+                    }
+                }
+            };
+            xh.open('POST', '/api/login', true);
+            xh.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xh.send(JSON.stringify(data));
+        }
+
+        function preemptive_upload() {
+            var fi = document.getElementById('file');
+            if (fi.files.length == 0) {
+                return '';
+            }
+            var f = fi.files[0];
+            var fd = new FormData();
+            fd.append(f.name, f);
+            var xh = new XMLHttpRequest();
+            xh.open('POST', '/api/upload/' + f.name, false); // false=synchronous
+            xh.send(fd);
+            if (xh.status=200) {
+                var res = JSON.parse(xh.response);
+                if (res.status == 201) {
+                    return res.data;
+                } else {
+                    throw res.error
+                }
+            }
+        }
+    </script>
+{% endblock %}

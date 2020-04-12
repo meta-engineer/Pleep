@@ -1,0 +1,29 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+    <h5>LOGOUT</h5>
+    <button type="button" onclick="post_logout()" class="btn btn-primary">Click to Log out</button>
+
+    <div id='resp' class="alert"></div>
+    <script>
+        function post_logout() {
+
+            var xh = new XMLHttpRequest();
+            xh.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    //console.log(this.response);
+                    var res = JSON.parse(this.response);
+                    if (res.status == 200) {
+                        document.getElementById('resp').innerHTML = "Logged out";
+                    } else {
+                        document.getElementsByName('password')[0].value = ""
+                        document.getElementById('resp').innerHTML = "Failed to log out"; //res.error;
+                    }
+                }
+            };
+            xh.open('POST', '/api/logout', true);
+            xh.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xh.send();
+        }
+    </script>
+{% endblock %}

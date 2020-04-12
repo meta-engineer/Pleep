@@ -1,0 +1,348 @@
+{% extends 'public_layout.html' %}
+
+{% block body %}
+    <div class="container">
+
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="border border-primary rounded p-3 bg-light h-100">
+                    <div class='row px-3'>
+                        <div class="col-sm-3 p-0" >
+                            <div style="display:block; padding-bottom:100%; height:0">
+                                <img src="/static/gulls/hmm.jpg" alt="profile picture" 
+                                style="position:absolute; top:0; bottom:0; left:0; right:0; width:100%; height:100%; object-fit:cover; border-radius:20%">
+                            </div>
+                        </div>
+                        <div class="col-sm-9">
+                            <h4>What is Pleep?</h4>
+                        </div> 
+                    </div>
+                    
+                    <hr>
+                    <p>Get pleeping fast with our quickpleep start guide. </p>
+                    <a class="btn btn-secondary" href="/info" role="button">More info on Pleep &raquo;</a>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="border border-primary rounded p-3 bg-light h-100">
+                    <div class='row px-3'>
+                        <div class="col-sm-3 p-0" >
+                            <div style="display:block; padding-bottom:100%; height:0">
+                                <img src="/static/gulls/5497819877_ac3d8c8a9b_b.jpg" alt="profile picture" 
+                                style="position:absolute; top:0; bottom:0; left:0; right:0; width:100%; height:100%; object-fit:cover; border-radius:20%;">
+                            </div>
+                        </div>
+                        <div class="col-sm-9">
+                            <h4>Random Daily Challenge Pleep</h4>
+                        </div> 
+                    </div>
+                    
+                    <hr>
+                    <p id='daily'>"Javelin toss your broom at a cactus"</p>
+                    <a id="daily_link" class="btn btn-secondary" href="#" role="button">View Pleep &raquo;</a>
+                    <script>
+                        function load_daily() {
+                            // find threads from account 'Pleep' and take most recent
+                            // if Pleep doesn't exist, or they have no posts then just :( womp womp
+                            data = {};
+                            data['creator_name'] = 'Pleep';
+                            data['order'] = 'timestamp';
+                            var xhr = new XMLHttpRequest();
+                            xhr.open('POST', '/api/thread/query', true);
+                            xhr.onreadystatechange = function() {
+                                if (this.readyState == 4 && this.status == 200) {
+                                    var res = JSON.parse(this.response);
+                                    if (res.status != 200 || res.data.length < 1) {
+                                        document.getElementById('daily').innerHTML = "No challenge pleep";
+                                        document.getElementById('daily_link').classList.add('disabled');
+                                    } else {
+                                        document.getElementById('daily').innerHTML = "<h5>\"" + res.data[0].title + "\"</h5>";
+                                        document.getElementById('daily_link').href = '/thread/' + res.data[0].id;
+                                    }
+                                }
+                            };
+                            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                            xhr.send(JSON.stringify(data));
+                        }
+                        load_daily();
+                    </script>
+                </div>
+            </div>
+            
+        </div>
+
+        <div class="row mt-3">
+            {% if session.logged_in %}
+                <a href="/create_thread" class="w-100">
+                    <button type="button" class="btn-info btn-lg w-100">
+                        Create a Pleep!
+                    </button>
+                </a>
+            {% else %}
+                <a href="/register" class="w-100">
+                    <button type="button" class="btn-info btn-lg w-100">
+                        Start pleeping!
+                    </button>
+                </a>
+            {% endif %}
+        </div>
+
+
+        <div class="row mt-3">
+            <h2 class="text-center">
+                Trending Pleeps
+            </h2>
+        </div>
+        <div class="row">
+            <div id="birdCarousel" class="carousel slide w-100" data-ride="carousel">
+                <ul id='carousel-indicators' class="carousel-indicators">
+
+                </ul>
+                <div id='carousel-inner' class="carousel-inner mt-4 mb-3" role="listbox">
+                
+                    
+                </div>
+              
+                <a class="carousel-control-prev" href="#birdCarousel" role="button" data-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="sr-only">Previous</span>
+                </a>
+                <a class="carousel-control-next" href="#birdCarousel" role="button" data-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="sr-only">Next</span>
+                </a>
+
+                <script>
+                    // for each result create carousel indicator and carousel-item
+                    function load_trending() {
+                        data = {};
+                        data['order'] = 'likes';
+                        data['limit'] = 5;
+                        var xhr = new XMLHttpRequest();
+                        xhr.open('POST', '/api/post/query', true);
+                        xhr.onreadystatechange = function() {
+                            if (this.readyState == 4 && this.status == 200) {
+                                var res = JSON.parse(this.response);
+                                if (res.status == 200) {
+                                    for (var i = 0; i < res.data.length; i++) {
+                                        var li = document.createElement('li');
+                                        li.setAttribute('data-target', '#birdCarousel');
+                                        li.setAttribute('data-slide-to', i);                                        
+                                        document.getElementById('carousel-indicators').appendChild(li);
+
+                                        var div = document.createElement('div');
+                                        div.setAttribute('class', 'carousel-item');
+                                        div.setAttribute('style', 'height:500px; background-color: black');
+                                        // dispatch based on data_type
+                                        if (res.data[i].data_type == "img") {
+                                            var img = document.createElement('img');
+                                            img.setAttribute('style', "position:absolute; left:50%;top:50%; transform: translate(-50%, -50%);");
+                                            img.setAttribute('src', "/api/download/" + res.data[i].data_filename);
+                                            img.setAttribute('alt', 'trending pleep slide ' + i);
+                                        } else if (res.data[i].data_type == "video") {
+                                            var img = document.createElement('video');
+                                            img.autoplay = true;
+                                            img.muted = true;
+                                            img.loop = true;
+                                            //img.controls = true;
+                                            img.setAttribute('style', "position:absolute; left:50%;top:50%; transform: translate(-50%, -50%);");
+
+                                            var source = document.createElement('source');
+                                            source.setAttribute('src', '/api/download/' + res.data[i].data_filename);
+                                            source.setAttribute('type', res.data[i].data_type + "/" + res.data[i].data_filename.split('.')[1]); // assuming no other . in filename
+                                            img.appendChild(source);
+                                        } else if (res.data[i].data_type == "audio") {
+                                            var img = document.createElement('img');
+                                            img.setAttribute('style', "position:absolute; left:50%;top:50%; transform: translate(-50%, -50%);");
+                                            img.setAttribute('src', "/static/gulls/photo-1544400037-aa2bf5c7c03a.jpg");
+                                            img.setAttribute('alt', 'audio replacement image ' + i);
+                                        } else {
+                                            var img = document.createElement('img');
+                                            img.setAttribute('style', "position:absolute; left:50%;top:50%; transform: translate(-50%, -50%);");
+                                            img.setAttribute('src', "/static/gulls/photo-1556376291-64b0b8a10397.jpg");
+                                            img.setAttribute('alt', 'text replacement image ' + i);
+                                        }
+                                        // slide numbered class
+                                        if (i == 0) {
+                                            img.setAttribute('class', "first-slide w-100");
+                                            div.setAttribute('class', 'carousel-item active');
+                                        } else if (i == 1) {
+                                            img.setAttribute('class', "second-slide w-100");
+                                        } else if (i == 2) {
+                                            img.setAttribute('class', "third-slide w-100");
+                                        } else if (i == 3) {
+                                            img.setAttribute('class', "fourth-slide w-100");
+                                        } else if (i == 4) {
+                                            img.setAttribute('class', "fifth-slide w-100");
+                                        }
+                                        var cont = document.createElement('div');
+                                        cont.setAttribute('class', 'container');
+                                        cont.innerHTML = '<div class="carousel-caption d-none d-md-block" style="text-shadow: 2px 2px #111111;">'
+                                        + '<h1 style="max-height:300px;overflow:hidden;text-overflow:ellipses; @supports (-webkit-line-clamp: 2) { overflow: hidden; text-overflow: ellipsis; white-space: initial; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }">' 
+                                        + res.data[i].text_content + '</h1>'
+                                        + '<p>' + res.data[i].thread_title + '</p>'
+                                        + '<p><a class="btn btn-lg btn-primary" href="/thread/' + res.data[i].thread_id + '?feature=' + res.data[i].id + '" role="button">See pleep »</a></p>'
+                                        + '</div>';
+                                        div.appendChild(img);
+                                        div.appendChild(cont);
+                                        document.getElementById('carousel-inner').appendChild(div);
+                                    }
+                                } else {
+                                    console.log(res.error);
+                                }
+                                if (res.status != 200 || res.data.length <= 0) {
+                                    var li = document.createElement('li');
+                                    li.setAttribute('data-target', '#birdCarousel');
+                                    li.setAttribute('data-slide-to', '0');                                        
+                                    document.getElementById('carousel-indicators').appendChild(li);
+
+                                    var div = document.createElement('div');
+                                    div.setAttribute('class', 'carousel-item active');
+                                    var img = document.createElement('img');
+                                    img.setAttribute('class', "first-slide img-fluid");
+                                    img.setAttribute('src', "/static/gulls/portrait-seagull-squawking-squawking-seagull-111307870.jpg");
+                                    img.setAttribute('alt', 'Failed response slide');
+                                    var cont = document.createElement('div');
+                                    div.setAttribute('class', 'container');
+                                    div.innerHTML = '<div class="carousel-caption d-none d-md-block" style="text-shadow: 2px 2px #111111;">'
+                                    + '<h1>This site is dead</h1>'
+                                    + '<p>No Pleeps found</p>'
+                                    + '<p><a class="btn btn-lg btn-primary" href="/register" role="button">Become a Pleeper</a></p>'
+                                    + '</div>';
+                                    img.appendChild(cont);
+                                    div.appendChild(img);
+                                    document.getElementById('carousel-inner').appendChild(div);
+                                }
+                            }
+                        };
+                        xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                        xhr.send(JSON.stringify(data));
+                    }
+                    load_trending();
+                </script>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 pl-0">
+                <h2>
+                    Recent Pleeps
+                </h2>
+                <ul class="list-group" id='recent'>
+                    
+                </ul>
+
+                <script>
+                    function load_recent() {
+                        // query for posts, order="likes", limit=5
+                        data = {};
+                        data['order'] = 'timestamp';
+                        data['limit'] = 5;
+                        var xhr = new XMLHttpRequest();
+                        xhr.open('POST', '/api/post/query', true);
+                        xhr.onreadystatechange = function() {
+                            if (this.readyState == 4 && this.status == 200) {
+                                var res = JSON.parse(this.response);
+                                if (res.status == 200) {
+                                    for (var i = 0; i < res.data.length; i++) {
+                                        var li = document.createElement('li');
+                                        li.setAttribute('class', 'list-group-item rounded mb-1');
+                                        li.setAttribute('style', 'border-style:solid; border-color: ' + res.data[i].author_color);
+                                        //show file?
+                                        //fn = '';
+                                        li.innerHTML = "<a class='row text-decoration-none text-dark' href='/thread/" + res.data[i].thread_id + "?feature=" + res.data[i].id + "'>"
+                                            + "<div class='col-sm-6 px-1' style='white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'>"
+                                            + res.data[i].text_content
+                                            + "</div>"
+                                            + "<div class='col-sm-6 px-1'>"
+                                            + "| " + res.data[i].thread_title
+                                            + "</div></a>";
+                                        
+                                        document.getElementById('recent').appendChild(li);
+                                    }
+                                } else {
+                                    console.log(res);
+                                }
+                                if (res.status != 200 || res.data.length <= 0) {
+                                    var li = document.createElement('li');
+                                    li.setAttribute('class', 'list-group-item');
+                                    li.innerHTML = "<a class='row text-decoration-none text-dark' href='#'>"
+                                        + "<div class='col-sm-12 px-1' style='white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'>"
+                                        + "Couldn't find any pleeps :("
+                                        + "</div>";
+                                    
+                                    document.getElementById('recent').appendChild(li);
+                                }
+                            }
+                        };
+                        xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                        xhr.send(JSON.stringify(data));
+                    }
+                    load_recent();
+                </script>
+            </div>
+            <div class="col-md-6 pr-0">
+                <h2>
+                    Top Pleepers
+                </h2>
+                <ul class="list-group" id='leaderboard'>
+                    
+                </ul>
+
+                <script>
+                        function load_leaderboard() {
+                            // query for posts, order="likes", limit=5
+                            data = {};
+                            data['order'] = 'clout';
+                            data['limit'] = 5;
+                            var xhr = new XMLHttpRequest();
+                            xhr.open('POST', '/api/account/query', true);
+                            xhr.onreadystatechange = function() {
+                                if (this.readyState == 4 && this.status == 200) {
+                                    var res = JSON.parse(this.response);
+                                    if (res.status == 200) {
+                                        for (var i = 0; i < res.data.length; i++) {
+                                            var li = document.createElement('li');
+                                            li.setAttribute('class', 'list-group-item rounded mb-1');
+                                            li.setAttribute('style', 'border-style:solid; border-color: ' + res.data[i].color);
+                                            //show file?
+                                            //fn = '';
+                                            li.innerHTML = "<a class='row text-decoration-none text-dark' href='/thread/" + res.data[i].thread_id + "?feature=" + res.data[i].id + "'>"
+                                                + "<div class='col-sm-6 px-1' style='white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'>"
+                                                + res.data[i].name
+                                                + "</div>"
+                                                + "<div class='col-sm-6 px-1 text-right'>"
+                                                + res.data[i].clout + " pc"
+                                                + "</div></a>";
+                                            
+                                            document.getElementById('leaderboard').appendChild(li);
+                                        }
+                                    } else {
+                                        console.log(res);
+                                    }
+                                    if (res.status != 200 || res.data.length <= 0) {
+                                        var li = document.createElement('li');
+                                        li.setAttribute('class', 'list-group-item')
+                                        li.innerHTML = "<a class='row text-decoration-none text-dark' href='#'>"
+                                            + "<div class='col-sm-12 px-1' style='white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'>"
+                                            + "Couldn't find any pleepers :("
+                                            + "</div>";
+                                        
+                                        document.getElementById('leaderboard').appendChild(li);
+                                    }
+                                }
+                            };
+                            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                            xhr.send(JSON.stringify(data));
+                        }
+                        load_leaderboard();
+                    </script>
+            </div>
+
+            
+        </div>
+    </div>
+    <img src="/static/pleep_ad.png" style="float:right;position:absolute; top:-10px; right:-40px">
+
+
+{% endblock %}

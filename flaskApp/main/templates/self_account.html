@@ -1,0 +1,228 @@
+{% extends 'public_layout.html' %}
+
+<!-- This should only be accessable while logged in -->
+
+{% block body %}
+
+    <div class="row rounded bg-light p-3" style="border-style: solid; border-color:{{ user_obj.color }}">
+        <div class="col-sm-2 p-0" >
+            <div style="display:block; padding-bottom:100%; height:0">
+                <img id='pp'src="" alt="profile picture" 
+                style="position:absolute; top:0; bottom:0; left:0; right:0; width:100%; height:100%; object-fit:cover; border-radius:20%; max-width: 200px;">
+            
+                {% if user_obj.image_filename %}
+                    <script>document.getElementById('pp').src = '/api/download/{{ user_obj.image_filename }}';</script>
+                {% else %}
+                    <script>document.getElementById('pp').src = "/static/gulls/5cd50efc-swns_fastest_seagull_02.jpg";</script>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <h2 style="word-wrap: break-word">{{ user_obj.name }}</h2>
+            <div>Lifetime Pleeps: {{ user_obj.lifetime_pleeps }}</div>
+            <div>Followers: {{ user_obj.followersCount }}</div>
+            <div>Following: <span id='following'></span></div>
+            <script>document.getElementById('following').innerHTML = JSON.parse('{{ user_obj.followingIDs }}').length</script>
+        </div>
+        <div class="col-sm-4" style="text-align: right">
+            <h2>Pleep Clout:</h2>
+            <h2>{{ user_obj.clout }}</h2>
+        </div>
+    </div>
+    <div class="row rounded bg-light p-3 mt-3">
+        <h4>Post to your Pleepline</h4>
+        <form action="" method="" class="w-100">
+            <button type="submit" disabled class="d-none" aria-hidden="true">shh</button>
+            <div class="form-group">
+                <textarea rows="3" id="text_content" class="form-control"></textarea>
+            </div>
+            <div class="form-group">
+                <input type="file" name="file" id='file' class="form-control" />
+            </div>
+            <button type="button" onclick="post_profile_thread(); this.form.reset();" class="btn btn-primary">Create</button>
+        </form>
+        <div id='resp' class="alert m-0"></div>
+        <script>
+            // get profile_thread and post to its id
+            function post_profile_thread() {
+                data = {}
+                try {
+                    var fn = preemptive_upload();
+                    if (fn != '') {
+                        data['data_filename'] = fn;
+                    }
+                } catch(err) {
+                    console.log(err);
+                    document.getElementById('resp').innerHTML = "File is too beeg yoshi"
+                    return
+                }
+                data['text_content'] = document.getElementById('text_content').value;
+                data['thread_id'] = '{{ user_obj.profile_thread_id }}';
+
+                if (data['text_content'] == '' &&  !('data_filename' in data)) {
+                    return;
+                }
+
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/api/post/create', true);
+                xhr.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                        var res = JSON.parse(this.response);
+                        if (res.status == 200) {
+                            // go to public profile and feature
+                            window.location = '/account/{{ user_obj.name }}?feature=' + res.data.id;
+                            document.getElementById('resp').innerHTML = 'Pleepline post added';
+                        } else {
+                            document.getElementById('resp').innerHTML = 'Post FAILED.';
+                        }
+                    }
+                };
+                
+                xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                xhr.send(JSON.stringify(data));
+            }
+            
+            function preemptive_upload() {
+                var fi = document.getElementById('file');
+                if (fi.files.length == 0) {
+                    return '';
+                }
+                var f = fi.files[0];
+                var fd = new FormData();
+                fd.append(f.name, f);
+                var xh = new XMLHttpRequest();
+                xh.open('POST', '/api/upload/' + f.name, false); // false=synchronous
+                xh.send(fd);
+                if (xh.status=200) {
+                    var res = JSON.parse(xh.response);
+                    if (res.status == 201) {
+                        return res.data;
+                    } else {
+                        throw res.error
+                    }
+                }
+            }
+        </script>
+    </div>
+    
+    <div class="row rounded bg-light p-3 mt-3">
+        <h4>Pleep threads you're following</h4>
+        <ul class="list-group w-100" id="thread_list">
+            
+        </ul>
+        <script>
+            function fetch_threads() {
+                var threadIDs = JSON.parse('{{ user_obj.active_threads }}');
+                for (var i=0; i < threadIDs.length; i++) {
+                    // set async requests to build posts
+                    var xhr = new XMLHttpRequest();
+                    xhr.onreadystatechange = function() {
+                        if (this.readyState == 4 && this.status == 200) {
+                            var res = JSON.parse(this.response);
+                            if (res.status == 200) {
+                                var li = document.createElement('li');
+                                li.setAttribute('class', 'list-group-item');
+                                time_string = '';
+                                if (res.data.closed) {
+                                    d_date = new Date(res.data.timestamp_delete*1000);
+                                    time_string = "<b>Closed</b> Deletes " + (d_date.getMonth()+1) + "/" + d_date.getDate() + "/" + d_date.getFullYear();
+                                } else {
+                                    c_date = new Date(res.data.timestamp_close*1000);
+                                    time_string = "Closes " + (c_date.getMonth()+1) + "/" + c_date.getDate() + "/" + c_date.getFullYear();
+                                }
+                                li.innerHTML = "<a href='/thread/" + res.data.id + "' class='row text-decoration-none text-dark px-2'>"
+                                    + "<div class='col-sm-1 p-0 text-center'>"
+                                    + "<h5><span class='badge badge-secondary'>" + res.data.postCount + "</span></h5>"
+                                    + "</div>"
+                                    + "<div class='col-sm-7 p-0 pl-2'>"
+                                    + "<h5>" + res.data.title + "</h5>"
+                                    + "</div>"
+                                    + "<div class='col-sm-4 text-right p-0'>"
+                                    + "<h5>" + time_string + "</h5>"
+                                    + "</div>"
+                                    + "</a>";
+                                document.getElementById('thread_list').appendChild(li);
+                            } else {
+                                console.log(res.error);
+                            }
+                        }
+                    };
+                    xhr.open('POST', '/api/thread/' + threadIDs[i], true);
+                    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                    xhr.send();
+                }
+                if (threadIDs.length == 0) {
+                    var li = document.createElement('li');
+                    li.setAttribute('class', 'list-group-item');
+                    li.innerHTML = "<h5> Go follow some Pleep threads! </h5>";
+                    document.getElementById('thread_list').appendChild(li);
+                }
+            }
+            fetch_threads();
+        </script>
+    </div>
+
+    <div class="row rounded bg-light p-3 mt-3">
+        <h4>Pleepers you're following</h4>
+        <ul id="following_list" class="list-group w-100">
+            
+        </ul>
+        <script>
+            function fetch_users() {
+                var userIDs = JSON.parse('{{ user_obj.followingIDs }}');
+                for (var i=0; i < userIDs.length; ++i) {
+                    // set async requests to build posts
+                    var xhr = new XMLHttpRequest();
+                    xhr.onreadystatechange = function() {
+                        if (this.readyState == 4 && this.status == 200) {
+                            var res = JSON.parse(this.response);
+                            if (res.status == 200) {
+                                var li = document.createElement('li');
+                                li.setAttribute('class', 'list-group-item');
+                                li.setAttribute('style', 'border-color: ' + res.data.color);
+                                fn = '';
+                                if (res.data.image_filename) {
+                                    fn = "/api/download/" + res.data.image_filename;
+                                } else {
+                                    fn = "/static/gulls/5cd50efc-swns_fastest_seagull_02.jpg";
+                                }
+                                li.innerHTML = "<a href='/account/" + res.data.name + "' class='row text-decoration-none text-dark px-2'>"
+                                    + "<div class='col-sm-1 p-0'>"
+                                    + "<div style='display:block; padding-bottom:100%; height:0'>"
+                                    + "<img alt='follow picture' src='" + fn + "'"
+                                    + "style='position:absolute; top:0; bottom:0; left:0; right:0; width:100%; height:100%; object-fit:cover; border-radius:20%; max-width: 200px;'>"
+                                    + "</div></div>"
+                                    + "<div class='col-sm-5 p-0 pl-2 pt-3'>"
+                                    + "<h5>" + res.data.name + "</h5>"
+                                    + "</div>"
+                                    + "<div class='col-sm-4 p-0 pl-2 pt-3'>"
+                                    + "<h5>" + res.data.lifetime_pleeps + " lifetime pleeps</h5>"
+                                    + "</div>"
+                                    + "<div class='col-sm-2 text-right p-0 pt-3'>"
+                                    + "<h5>" + res.data.clout + " PC</h5>"
+                                    + "</div>"
+                                    + "</a>";
+                                    //style="position:absolute; top:0; bottom:0; left:0; right:0; width:100%; height:100%; object-fit:cover; border-radius:20%; max-width: 200px;">
+                                document.getElementById('following_list').appendChild(li);
+                            } else {
+                                console.log(res.error);
+                            }
+                        }
+                    };
+                    xhr.open('POST', '/api/account/' + userIDs[i], true);
+                    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                    xhr.send();
+                }
+                if (userIDs.length == 0) {
+                    var li = document.createElement('li');
+                    li.setAttribute('class', 'list-group-item');
+                    li.innerHTML = "<h5> Go follow some Pleepers! </h5>";
+                    document.getElementById('following_list').appendChild(li);
+                }
+            }
+            fetch_users();
+        </script>
+    </div>
+
+    
+{% endblock %}
