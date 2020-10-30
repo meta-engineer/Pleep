@@ -1,5 +1,7 @@
 ﻿# Pleep
-Pleep on Flask (api backend and desktop frontend)
+Pleep is a mock social media site that implements a full stack with Flask.
+The backend has api endpoints which construct and manage an sql (sqlite) database through sqlalchemy
+The frontend serves dynamic pages through Flask templating and HTML/CSS.
 
 ## Setup
  *While it is possible to set ENV and DEBUG in your config or code, 
@@ -8,11 +10,13 @@ Pleep on Flask (api backend and desktop frontend)
     on a previous value*
 
 *run from Pleep_Flask (this dir)*
-set FLASK_APP=flaskApp
-set FLASK_ENV=development (or production)
+set FLASK_APP=flaskApp,
+set FLASK_ENV=development (or production),
 set FLASK_RUN_PORT=XXXX
+
 // flask install not recognised by flask, but is by python? (local dependandy error)
 // likely solved by starting the project with virtualenv and installing locally
+
 python -m flask run
 or
 flask run
